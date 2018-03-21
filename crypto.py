@@ -2,14 +2,10 @@
 from requests import get
 from json import loads
 import sys
-import table
-
-print(table.Table([['neits', 'stsr'], ['nestis','tsi']]))
+from table import Table
+from colorstring import Color
 
 ## CONFIG
-
-# Print the price you bought at for each coin
-use_portfolio = True
 
 # The coins you want to track in addition to the portfolio
 mycoins = ['XRP', 'XMR']
@@ -35,7 +31,6 @@ portfolio = {
 }
 
 def parse_args():
-    global use_portfolio
     printall = False
     usrcoins = []
 
@@ -44,12 +39,10 @@ def parse_args():
             printall = True
         else:
             usrcoins = sys.argv[1:]
-        use_portfolio = False
     else:
         usrcoins = mycoins
-        if use_portfolio:
-            for coin in portfolio:
-                usrcoins.append(coin)
+        for coin in portfolio:
+            usrcoins.append(coin)
 
     return printall, usrcoins
 
@@ -69,46 +62,40 @@ def matchname(name, repository):
 class Coin():
     def __init__(self, data):
         self.price = data['price_usd']
+        self.name = data['name']
         self.change = {i: float(data['percent_change_' + i]) for i in ['1h', '24h', '7d']}
         self.symbol = data['symbol']
 
-    def __repr__(self):
+    def render(self):
+        getfg = lambda x: 'red' if float(x) < 0 else 'green'
+
         retval = []
-        retval.append(colorize(self.symbol.ljust(5), 'bold') + ' ')
+        retval = []
+        retval.append(Color(self.symbol, 'bold'))
+        retval.append(Color(self.name))
+        retval.append(Color(self.price.lstrip('0'), 'bold', getfg(self.change['24h'])))
 
-        fg = 'red' if self.change['24h'] < 0 else 'green'
-        if self.price[0] == '0':
-            self.price = self.price[1:]
-        price = self.price.rjust(10)
-        retval.append(colorize(price, 'bold', fg))
 
-        retval.append(' ')
-
-        if use_portfolio:
-            if self.symbol in portfolio:
-                port = portfolio[self.symbol]
-                cost = str(port['cost'] / port['amount'])
-                if len(cost) > 6:
-                    cost = cost[:6]
-                if cost[-1] == '.':
-                    cost = cost[:-1]
-                cost = cost.ljust(6)
-                retval.append(colorize(cost, 'faint'))
-            else:
-                retval.append(' ' * 6)
-            retval.append('   ')
+        if self.symbol in portfolio:
+            port = portfolio[self.symbol]
+            cost = str(port['cost'] / port['amount'])
+            cost = cost[:6]
+            if cost[-1] == '.':
+                cost = cost[:-1]
+            retval.append(cost)
+        else:
+            retval.append('')
             
 
         for timeframe, percentage in self.change.items():
-            retval.append(timeframe + ': ')
-
-            change = ('%.2f' % percentage + '%').rjust(8)
+            change = ('%.2f' % percentage + '%').rjust(7)
             fg = 'red' if percentage < 0 else 'green'
-            retval.append(colorize(change, fg=fg) + '    ')
+            retval.append(Color(change, 'normal', getfg(percentage)))
 
-        return ''.join(retval)
+        return retval
 
 def print_portfolio(portfolio, coins):
+
     def frmt(num):
         return colorize(str('%.2f' % num) + ' USD', 'bold')
         
@@ -129,22 +116,28 @@ def print_portfolio(portfolio, coins):
 
     print('(' + colorize(str('%.2f' % gainpercent) + '%', 'bold', fg) + ')')
 
+def main():
 
-printall, usrcoins = parse_args()
+    printall, usrcoins = parse_args()
 
-register = loads(get('https://api.coinmarketcap.com/v1/ticker/').text)
+    register = loads(get('https://api.coinmarketcap.com/v1/ticker/').text)
 
-coins = []
+    coins = []
 
-for coin in register:
+    for coin in register:
 
-    is_match = any([matchname(coin[tag], usrcoins) for tag in ['symbol', 'id', 'name']])
+        is_match = any([matchname(coin[tag], usrcoins) for tag in ['symbol', 'id', 'name']])
 
-    if is_match or printall:
-        coins.append(Coin(coin))
+        if is_match or printall:
+            coins.append(Coin(coin))
 
-for coin in coins:
-    print(coin)
+    data = []
+    for coin in coins:
+        data.append(coin.render())
+    header = [Color(i, 'bold') for i in ['ticker', 'name', 'price', 'buy', '1h', '24h', '7d']]
 
-if use_portfolio:
+    print(Table(data, header))
+
     print_portfolio(portfolio, coins)
+if __name__ == '__main__':
+    main()
