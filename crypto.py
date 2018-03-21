@@ -2,6 +2,9 @@
 from requests import get
 from json import loads
 import sys
+import table
+
+print(table.Table([['neits', 'stsr'], ['nestis','tsi']]))
 
 ## CONFIG
 

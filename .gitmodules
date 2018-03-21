@@ -1,0 +1,4 @@
+[submodule "table"]
+	path = table
+	url = https://github.com/simonsolnes/table
+	branch = master
