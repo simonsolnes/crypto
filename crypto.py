@@ -18,8 +18,8 @@ portfolio = {
         'cost' : 160.2
     },
     'ETH': {
-        'amount': 1,
-        'cost' : 1066.05
+        'amount': 1.5,
+        'cost' : 1338.14
     },
     'LTC' : {
         'amount': 3,
