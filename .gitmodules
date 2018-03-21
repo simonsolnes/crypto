@@ -2,3 +2,6 @@
 	path = table
 	url = https://github.com/simonsolnes/table
 	branch = master
+[submodule "colorstring"]
+	path = colorstring
+	url = https://github.com/simonsolnes/colorstring
